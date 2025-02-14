@@ -49,6 +49,7 @@ app.delete("/users/:id", async (req, res) => {
 // products
 app.get("/products", async (req, res) => {
   const products = await prisma.product.findMany();
+  console.log(products);
   res.send(products);
 });
 
@@ -57,6 +58,7 @@ app.get("/products/:id", async (req, res) => {
   const product = await prisma.product.findUnique({
     where: { id },
   });
+  console.log(product);
   res.send(product);
 });
 
