@@ -7,6 +7,7 @@ import {
   PatchUser,
   CreateProduct,
   PatchProduct,
+  CreateOrder,
 } from "./structs.js";
 
 dotenv.config();
@@ -61,6 +62,13 @@ app.get(
       orderBy,
       skip: parseInt(offset),
       take: parseInt(limit),
+      include: {
+        userPreference: {
+          select: {
+            receiveEmail: true,
+          },
+        },
+      },
     });
     res.send(users);
   })
@@ -73,6 +81,13 @@ app.get(
     // Destructuring assignment
     const user = await prisma.user.findUniqueOrThrow({
       where: { id },
+      include: {
+        userPreference: {
+          select: {
+            receiveEmail: true,
+          },
+        },
+      },
     });
     console.log(user);
     res.send(user);
@@ -84,7 +99,18 @@ app.post(
   asyncHandler(
     asyncHandler(async (req, res) => {
       assert(req.body, CreateUser);
-      const user = await prisma.user.create({ data: req.body });
+      const { userPreference, ...userFields } = req.body;
+      const user = await prisma.user.create({
+        data: {
+          ...userFields,
+          userPreference: {
+            create: userPreference,
+          },
+        },
+        include: {
+          userPreference: true,
+        },
+      });
       res.status(201).send(user);
     })
   )
@@ -95,9 +121,19 @@ app.patch(
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     assert(req.body, PatchUser);
+
+    const { userPreference, ...userFields } = req.body;
     const user = await prisma.user.update({
       where: { id },
-      data: req.body,
+      data: {
+        ...userFields,
+        userPreference: {
+          update: userPreference,
+        },
+      },
+      include: {
+        userPreference: true,
+      },
     });
     res.send(user);
   })
@@ -111,6 +147,34 @@ app.delete(
       where: { id },
     });
     res.send("Success delete");
+  })
+);
+
+app.get(
+  "/users/:id/saved-products",
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { savedProducts } = await prisma.user.findUniqueOrThrow({
+      where: { id },
+      include: {
+        savedProducts: true,
+      },
+    });
+    res.send(savedProducts);
+  })
+);
+
+app.get(
+  "/users/:id/orders",
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { orders } = await prisma.user.findUniqueOrThrow({
+      where: { id },
+      include: {
+        orders: true,
+      },
+    });
+    res.send(orders);
   })
 );
 
@@ -194,6 +258,56 @@ app.delete(
   })
 );
 
+// orders
+// orderItem 도 같이 생성
+app.post(
+  "/orders",
+  asyncHandler(async (req, res) => {
+    assert(req.body, CreateOrder);
+    const { userId, orderItems } = req.body;
+
+    const order = await prisma.order.create({
+      data: {
+        userId,
+        orderItems: {
+          create: orderItems,
+        },
+      },
+      include: {
+        orderItems: true,
+      },
+    });
+    res.status(201).send(order);
+  })
+);
+
+app.get(
+  "/orders/:id",
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const order = await prisma.order.findUniqueOrThrow({
+      where: { id },
+      include: {
+        orderItems: true,
+      },
+    });
+    // 1번 방식
+    let total = 0;
+    order.orderItems.forEach(({ unitPrice, quantity }) => {
+      total += unitPrice * quantity;
+    });
+
+    // 2번 방식
+    // const total = order.orderItems.reduce((acc, { unitPrice, quantity }) => {
+    //   return acc + unitPrice * quantity;
+    // }, 0);
+
+    order.total = total;
+    res.send(order);
+  })
+);
+
+// app.listen
 app.listen(process.env.PORT || 3000, () =>
   console.log(`Server started on ${process.env.PORT}`)
 );

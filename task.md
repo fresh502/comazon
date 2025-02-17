@@ -20,3 +20,8 @@
   - PatchProduct는 CreateProduct의 일부
 
 - POST products, PATCH product API 적용
+
+- 관련 객체 조회
+
+1. GET /orders/:id에서 Order와 관련된 OrderItem도 모두 조회
+2. 특정 유저의 Order를 모두 조회할 수 있는 GET /users/:id/orders 유저 정보는 조회할 필요 없고, 유저의 Order만 모두 조회
