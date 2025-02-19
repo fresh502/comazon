@@ -61,9 +61,8 @@ userRouter
 userRouter
   .route("/:id")
   .get(
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (req, res, next) => {
       const { id } = req.params;
-      // Destructuring assignment
       const user = await prisma.user.findUniqueOrThrow({
         where: { id },
         include: {
@@ -74,7 +73,6 @@ userRouter
           },
         },
       });
-      console.log(user);
       res.send(user);
     })
   )
